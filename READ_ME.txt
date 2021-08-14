@@ -1,4 +1,4 @@
-#running this script
+##running this script##
 
 Python 3 is required to run this script. 
 
@@ -9,13 +9,15 @@ available_list.txt
 2. in powershell, navigate to this directory
 3. execute the python script
 
-#current status
+##current status##
 
 Currently, there is only one functioning feature. This functionality removes any non-basic component requirements for blocks. Essentially, this entails removing any requirement for components that cannot be created from a survival kit, replacing them with components that can be created from a survival kit. The only exception is that any component requirements for power cells will not be changed.
 
-#Using this script
+The ability to make changes to individual attributes for blocks and other items is a work in progress. Currently, this functionality is not implemented.
 
-Currently, this script only works on files in the "CubeBlocks" folder. The text file "available_list" must contain the file names of any SBC files you want to edit. Do not include the file extension. Each file name must be on a separate line. Avoid placing any blank lines in this file.
+##Using this script##
+
+Currently, this script only works on files in the "CubeBlocks" folder. The text file "available_list" must contain the file names of any SBC files you want to edit. Do not include the file extension. Each file name must be on a separate line. Avoid placing any blank lines in this file. If a file is listed, the corresponding SBC file must be in the directory containing the script files. 
 
 Example:
 
