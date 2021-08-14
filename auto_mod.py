@@ -8,7 +8,7 @@ class common:
         read_in.close()
         return return_v
         
-    def write_file (self,a,b): # a == the name of file ; b == the new text to over-right to the file
+    def write_file (self,a,b): # a == the name of file ; b == the new text to overwrite to the file
         name = a + ".sbc"
         read_inw = open(name,"w")
         read_inw.write(b)
