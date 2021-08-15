@@ -13,7 +13,7 @@ available_list.txt
 
 Currently, there is only one functioning feature. This functionality removes any non-basic component requirements for blocks. Essentially, this entails removing any requirement for components that cannot be created from a survival kit, replacing them with components that can be created from a survival kit. The only exception is that any component requirements for power cells will not be changed.
 
-The ability to make changes to individual attributes for blocks and other items is a work in progress. Currently, this functionality is not implemented.
+The ability to make changes to individual attributes for blocks and other items is a work in progress. Currently, this feature is being developed and is not fully functional.
 
 ##Using this script##
 
