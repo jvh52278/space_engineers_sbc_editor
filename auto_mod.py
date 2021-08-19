@@ -92,7 +92,6 @@ class common:
 
 def regular_component_info_search (a,b,c,d): #a == start index of the line ; b == end index of the line ; c == source text ; d == mode -- 1 = return attribute value, 2 = return required quantity value, 3 = return the attribute start index, 4 = return the quantity value start index
     #gets info for manual editing of regular component lines
-    v_list = ["first","second"] #store the two values here
     fnc = common()
     #get the attribute value
     search_1 = 'Subtype="'
@@ -496,10 +495,80 @@ while (mode_list[0] > 0):
                 print(line_number,"|",attribute,diff_blanks,"|",quantity,sep="")
                 for x in range (0,len(line_number_str)): #there is a space between displayed element
                     print (line_number_str[x]," ",reg_attributes[x]," ",reg_values[x],sep="")
-                
-                
-                
-                
+                #enter editing mode
+                edit_loop = [1,0] #element 0 == edit loop ; element 1 == input checking
+                #while the edit loop is running, edit_loop[0] = 1, otherwise 0
+                #while the input is being checked, edit_loop[1] = 1, otherwise 0
+                edit_exit = "exit"
+                while (edit_loop[0] == 1): #edit mode activated
+                    print ("to edit a required component line, format the input like this: line_number-component_type or required_quantity-new_value")
+                    print ("to return to the previous menu, enter '",edit_exit,"'",sep="")
+                    test_num = [0] #the number of input validation tests that have been done
+                    e_input = input(":") #user input
+                    #check if the exit option has been selected
+                    if e_input == edit_exit:
+                        edit_loop[0] = 0
+                    #if the input is not the exit option
+                    #validate the format of the input
+                    
+                    #instant fail case: check if the input is blank
+                    if test_num[0] == 0:
+                        print ("DEBUG - test 0: checking if the input is blank") #debug
+                        if e_input: #if the input is not blank
+                            print ("DEBUG - test 0 passed") #debug
+                            test_num[0] = test_num[0] + 1
+                        if not e_input: #if the input is blank, return to input selection
+                            print ("invalid input")
+                            print ("input is blank")
+                    #instant fail case: check if there are not 2 "-"
+                    if test_num[0] == 1: #testing there are 2 "-"
+                        print ('DEBUG - test 1: testing for 2 "-"') #debug
+                        count = [0] #number of "-"
+                        for x in range (0,len(e_input)):
+                            find_char_o = "-"
+                            if e_input[x] == find_char_o:
+                                count[0] =  count[0] + 1
+                        correct_num = 2
+                        if count[0] == correct_num: #if this test passes, move on to the next test
+                            test_num[0] = test_num[0] + 1
+                            print ("DEBUG - test 1 passed") #debug
+                        if count[0] != correct_num: #if this test fails, go back to input selection
+                            print ("invalid input")
+                    #instant fail case: check if the first character of the input is not a number
+                    if test_num[0] == 2:
+                        print ("DEBUG - test 2: checking of the first character is a number") #debug
+                        first_char = (e_input[0])
+                        if first_char.isnumeric(): #if the first character of the input is a number, move on to the next test
+                            print ("DEBUG - test 2 passed") #debug
+                            test_num[0] =  test_num[0] + 1
+                        if first_char.isnumeric() == False: #if the first character of the input is not a number, return to input selection
+                            print ("invalid input")
+                    #test 3: check if everything before the first "-" is a number
+                    if test_num[0] == 3:
+                        print ('DEBUG - test 3: check if everything before the first "-" is a number') #debug
+                        f_index = -5 #the index of the first "-"
+                        find_1 = "-"
+                        start_point = 0
+                        f_index = find_char(e_input,start_point,find_1)
+                        non_numeric = [0] #the number of non-numeric characters
+                        if f_index > 0:
+                            #get the number of non-numeric characters before the first "-"
+                            for x in range(0,f_index):
+                                test_char = e_input[x]
+                                if test_char.isnumeric() == False: #if the character is not a number
+                                    non_numeric[0] = non_numeric[0] + 1
+                        if non_numeric[0] == 0: #if all the characters before the first "-" are numbers, move on to the next test
+                            print ("DEBUG - test 3 passed") #debug
+                            test_num[0] = test_num[0] + 1
+                        if non_numeric[0] > 0: #if there is at least 1 non-numeric character before the first "-"
+                            print ("invalid input")
+                    #test 4: check if the number before the first "-" is a valid line number
+                    if test_num[0] == 4:
+                        print ('DEBUG - test 4: check if the number before the first "-" is a valid line number')
+                    #futher checks:
+                    #the next "-" is not right next to the first "-"
+                    #the modification type between the first "-" and the second "-" is valid
+                    #if these two tests pass, replace the old value with the new value
         while (mode_list[2] == 1) and mode_list[3] > 0:
             print ("all entries within this file will be removed of all non standard components")
             st_index = [] #contains the start index of each line in the file
