@@ -501,7 +501,11 @@ while (mode_list[0] > 0):
                 #while the input is being checked, edit_loop[1] = 1, otherwise 0
                 edit_exit = "exit"
                 while (edit_loop[0] == 1): #edit mode activated
-                    print ("to edit a required component line, format the input like this: line_number-component_type or required_quantity-new_value")
+                    print ("---------")
+                    print ("for the following input formats, '#' represents the new value or the line you want to change")
+                    print ("to edit a required component line and change the component type, enter in the following format: #line_number-component-#value")
+                    print ("to edit a required component line and change the required quantity, enter in the following format: #line_number-quantity-#value")
+                    print ("---------")
                     print ("to return to the previous menu, enter '",edit_exit,"'",sep="")
                     test_num = [0] #the number of input validation tests that have been done
                     e_input = input(":") #user input
@@ -565,10 +569,96 @@ while (mode_list[0] > 0):
                     #test 4: check if the number before the first "-" is a valid line number
                     if test_num[0] == 4:
                         print ('DEBUG - test 4: check if the number before the first "-" is a valid line number')
-                    #futher checks:
-                    #the next "-" is not right next to the first "-"
-                    #the modification type between the first "-" and the second "-" is valid
-                    #if these two tests pass, replace the old value with the new value
+                        test_line_num = [] #stores the list of valid line numbers
+                        for x in range (0,len(reg_values)): #get the line numbers into a list
+                            in_v = str(x)
+                            test_line_num.append(in_v)
+                        #get the line inputed line number
+                        first_d = "-"
+                        index_d_1 = -5
+                        index_d_1 = find_char(e_input,0,first_d) #the index of the first "-"
+                        num_input = "" #the inputed line number
+                        if index_d_1 > 0:
+                            fmc = common()
+                            num_input = fmc.get_value_char_end(e_input,0,len(e_input) - 1,first_d)
+                        # check if the inputed line number is a match for valid line number
+                        valid_status = [0] # 0 == invalid number, 1 == valid number
+                        for y in range (0,len(test_line_num)):
+                            if num_input == test_line_num[y]: #if the inputed line number is a match for a valid line number
+                                print ("DEBUG - the inputed line number is valid") #debug
+                                print ("DEBUG - inputed line number |",num_input,"| - matched value |",test_line_num[y],"|",sep="") #debug
+                                valid_status[0] = 1
+                        if valid_status[0] == 0:
+                            print ("invalid input")
+                        if valid_status[0] == 1:
+                            print ("DEBUG - test 4 passed") #debug
+                            test_num[0] = test_num[0] + 1
+                    #test 5: the last character is not a "-"
+                    if test_num[0] == 5:
+                        print ('DEBUG - test 5: checking if the last character is not a "-"')
+                        len_input = len(e_input) - 1
+                        last_dd = "-"
+                        if e_input[len_input] == last_dd: #if the last character is a "-"
+                            print ("invalid input")
+                        if e_input[len_input] != last_dd: #if the last character is not a "-"
+                            print ("DEBUG - test 5 passed")
+                            test_num[0] = test_num[0] + 1
+                    #test 6: check if the next "-" is not right next to the first "-"
+                    if test_num[0] == 6: 
+                        print ('DEBUG - test 6: checking if the next "-" is not right next to the first "-"')
+                        next_d = "-"
+                        next_index_d = -5 #the index of the second "-"
+                        next_index_d = find_char(e_input,0,next_d)
+                        next_v_status = [0] #0 == the next character is a "-", 1 == the next character is not a "-"
+                        if next_index_d > 0:
+                            #check if the next character is a "-"
+                            if e_input[next_index_d + 1] != next_d: #if the next character is not a "-"
+                                next_v_status[0] = 1
+                        if next_v_status[0] == 1:
+                            print ("DEBUG - test 6 passed") #debug
+                            test_num[0] = test_num[0] + 1
+                        if next_v_status[0] == 0:
+                            print ("invalid input")
+                    #test 7: the modification type between the first "-" and the second "-" is valid
+                    if test_num[0] == 7:
+                        print ('DEBUG - test 7: the modification type between the first "-" and the second "-" is valid')
+                        mod_t_1 = "component" #valid modification type 1
+                        mod_t_2 = "quantity"
+                        find_ddd = "-"
+                        first_p = [-5] #the index of the first "-"
+                        last_p = [-5] #the index of the second "-"
+                        #find the index of the first "-"
+                        first_p[0] = find_char(e_input,0,find_ddd)
+                        if first_p[0] > 0:
+                            #find the index of last "-"
+                            last_p[0] = find_char(e_input,first_p[0] + 1,find_ddd)
+                        if (first_p[0] > 0) and (last_p[0] > 0):
+                        # get the text in between the first "-" and the last "-"
+                            fvc = common()
+                            fl_between = "" #the text between the two "-"
+                            fl_between = fvc.get_value_char_end(e_input,first_p[0] + 1,len(e_input) - 1,find_ddd)
+                            final_status = [0] #no valid modification type = 0, valid modification type = 1
+                            #check if the text is a match for a valid modification type
+                            print ("DEBUG: input |",fl_between,"|",sep="") #debug
+                            if fl_between == mod_t_1: #checking if the component type value is being modified
+                                print ("DEBUG - correct argument |",mod_t_1,"|",sep="") #debug
+                                print ("DEBUG - test 7 passed: modifying component type value") #debug
+                                test_num[0] = test_num[0] + 1
+                                final_status[0] = 1
+                            if fl_between == mod_t_2: #checking if the required quantity is being modified
+                                print ("DEBUG - correct argument |",mod_t_2,"|",sep="")
+                                print ("DEBUG - test 7 passed: modifying required quantity value") #debug
+                                test_num[0] = test_num[0] + 1
+                                final_status[0] = 1
+                            if final_status[0] == 0: #no valid match has been found
+                                print ("invalid input")
+                    #if all tests pass, replace the old value with the new value
+                        if test_num[0] == 8: #all tests have passed
+                            print ("DEBUG - all tests passed - modifying the selected value")
+                            #get the value after the last "-" -> this is the replacement value
+                            #replace the old value with the new value
+                            #re-index file
+                            #re-display the info
         while (mode_list[2] == 1) and mode_list[3] > 0:
             print ("all entries within this file will be removed of all non standard components")
             st_index = [] #contains the start index of each line in the file
