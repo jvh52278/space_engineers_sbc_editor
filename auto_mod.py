@@ -8,7 +8,7 @@ class common:
         read_in.close()
         return return_v
         
-    def write_file (self,a,b): # a == the name of file ; b == the new text to overwrite to the file
+    def write_file (self,a,b): # a == the name of file ; b == the new text to over-write to the file
         name = a + ".sbc"
         read_inw = open(name,"w")
         read_inw.write(b)
@@ -51,7 +51,7 @@ class common:
         if status == s_1:
             return d_v
                 
-    def line_print (self,a,b,c,d): # a: the source text ; b: the start index ; c: the end index - NOTE: assumes that the end index is the idendex AFTER the last character ; d:mode - 1 == print contents, 2 == return string
+    def line_print (self,a,b,c,d): # a: the source text ; b: the start index ; c: the end index - NOTE: assumes that the end index is the index AFTER the last character ; d:mode - 1 == print contents, 2 == return string
         p_v = ""
         for x in range (b,c):
             p_v = p_v + a[x]
@@ -76,7 +76,7 @@ class common:
             
         return return_v2
         
-    def insert_text (self,a,b,c,d): #a: the source text ; b: the index to break before - NOTE: this INCLUDES the index ; c: the index to break after - NOTE: this does NOT include the index ; d: the text to insert in between
+    def insert_text (self,a,b,c,d): #a: the source text ; b: the index to break before - NOTE: this breaks the text before character, use desired index + 1 to include the character you want to break at, where index is the target character; c: the index to break after - NOTE: this does NOT include the index ; d: the text to insert in between
         half_1 = ""
         half_2 = ""
         for x in range (0,b):
@@ -90,6 +90,54 @@ class common:
         return whole
 # class functions end here
 
+def regular_component_info_search (a,b,c,d): #a == start index of the line ; b == end index of the line ; c == source text ; d == mode -- 1 = return attribute value, 2 = return required quantity value, 3 = return the attribute start index, 4 = return the quantity value start index, 5 = return the critical component value start index, 6 = return the the critical component value
+    #gets info for manual editing of regular component lines
+    fnc = common()
+    #get the attribute value
+    search_1 = 'Subtype="'
+    a_1 = -5 #the start point of the attribute value
+    a_1 = fnc.grep(a,b,search_1,c)
+    
+    a_value = "" #the attribute value
+    
+    if a_1 > -5:
+        #get the index of the corresponding '"'
+        target_1 = '"'
+        a_value = fnc.get_value_char_end(c,a_1 + 1,b,target_1) #attribute value
+        
+    #get the required quantity value
+    search_2 = 'Count="'
+    a_2 = -5 #the start point of the quantity value
+    a_2 = fnc.grep(a,b,search_2,c)
+    
+    b_value = "" #the quantity value
+    
+    if a_2 > -5:
+        b_value = fnc.get_value_char_end(c,a_2 + 1,b,target_1)
+        
+    #find the critical component
+    c_value = "" #the critical component value
+    a_3 = -5 #the start index of the critical value
+    search_3 = '<CriticalComponent Subtype="'
+    a_3 = fnc.grep(a,b,search_3,c)
+    if a_3 > -5:
+        c_value = fnc.get_value_char_end(c,a_3 + 1,b,target_1)
+    
+    #return the selected value
+    if d == 1: #return the attribute value
+        return a_value
+    if d == 2: #return the quantity value
+        return b_value
+    if d == 3: #return the attribute start point
+        return a_1
+    if d == 4: #return the quantity start point
+        return a_2
+    if d == 5: #return the critical component value start index
+        return a_3
+    if d == 6: #return the critical component
+        return c_value
+        
+    
 def mass_grep (a,b,c,d,e,f,g): #a: text source ; b: list containing indexed line start indexes ; c: list containing indexed line end indexes ; d: list to store line start indexes of section starts; e: list to store line end indexes of section starts ; f: list to store start indexes of section ends ; g: list to store end indexes of section ends
     print ("indexing the entire file")
     key_1 = "SubtypeId"
@@ -294,9 +342,477 @@ while (mode_list[0] > 0):
 
         while (mode_list[2] == 2) and mode_list[3] > 0:
             print ("manual edit mode selected")
-            print ("DEBUG - this feature is under development") #debug
-            mode_list[3] = 0 #debug - remove this when feature is complete
+            print ("DEBUG - this feature is under development. it is not fully functional and you will see debugging messages") #debug
+            
+            line_n_reg = [] #line numbers for regular component lines -- REMEMBER: clear this list when changing to a new entry
+            line_n_reg_st = [] #start indexes for each regular component line -- REMEMBER: clear this list when changing to a new entry
+            line_n_reg_en = [] #end indexes for each regular component line -- REMEMBER: clear this list when changing to a new entry
+            reg_attributes = [] #component types for each regular component line -- REMEMBER: clear this list when changing to a new entry
+            reg_attributes_st = [] #the start indexes for attribute values
+            reg_values = [] #required quantities for each regular component line -- REMEMBER: clear this list when changing to a new entry
+            reg_values_st = [] #the start indexes for quantity values
+            
+            crt_value_st = [] #the start index of the critical component value
+            crt_value = [] #the critical component value
+            
+            section_start = [-5] #the line number of the section start
+            section_end = [-5] #the line number of the section end
+            
+            file_st = [] #start indexes for every line in the file -- REMEMBER: clear list + re-index after every change
+            file_en = [] #end indexes for every line in the file -- REMEMBER: clear list + re-index after every change
+            fcc = common()
+            fcc.index_lines(edit_file,file_st,file_en)
+            
+            #select the section to edit
+            exit_code = "exit"
+            
+            print ("enter the name of the item you want to edit")
+            print ("enter '",exit_code,"' to return to the previous menu",sep="")
+            find_sec = input(":")
+            
+            if find_sec == exit_code:
+                mode_list[3] = 0
                 
+            start_key_base = "<SubtypeId>"
+            start_key_end = "<"
+            start_key_full = start_key_base + find_sec + start_key_end #a section starts at this line
+            end_key = "</Definition>" #a section ends at this line
+            
+            print ("searching for: ",find_sec,sep="")
+            #print ("start_key_full is |",start_key_full,"|",sep="") #debug
+            #find the section start line and end line
+            r_mode = [1] #1 == looking for start line ; 2 == looking for end line
+            lm = [0] #line number iterator
+            
+            while (r_mode[0] < 3) and (lm[0] < len(file_st)):
+                if r_mode[0] == 1: #looking for start section
+                    #print ("searching for section start") #debug
+                    st_check = -5 #if this is -5, the section name does not exist in the file
+                    i_num = lm[0]
+                    st_check = fcc.grep(file_st[i_num],file_en[i_num],start_key_full,edit_file)
+                    if st_check > -5: #the section name exists
+                        print ("section start found")
+                        section_start[0] = i_num
+                        r_mode[0] = r_mode[0] + 1
+                if r_mode[0] == 2: #looking for section end
+                    #print ("seaching for section end") #debug
+                    en_check = -5 #if this is -5, the section name does not exist in the file
+                    i_num = lm[0]
+                    en_check = fcc.grep(file_st[i_num],file_en[i_num],end_key,edit_file)
+                    if en_check > -5: #the section end has been found
+                        print ("found section end")
+                        section_end[0] = i_num
+                        r_mode[0] = r_mode[0] + 1
+                lm[0] = lm[0] + 1
+            #if no match is found
+            if (section_start[0] < 0) or (section_end[0] < 0):
+                print ("no match for |",find_sec,"| was found",sep="")
+            #if a match is found
+            if (section_start[0] > 0) or (section_end[0] > 0):
+                print ("a match has been found for |",find_sec,"|",sep="")
+                #list the relevent information
+                #regular component line info gathering
+                for x in range (section_start[0],section_end[0] + 1):
+                    reg_l = -5
+                    crt_l = -5 #trigger for the critical component value
+                    reg_key = "<Component Subtype="
+                    crt_key = "<CriticalComponent Subtype="
+                    reg_l = fcc.grep(file_st[x],file_en[x],reg_key,edit_file)
+                    crt_l = fcc.grep(file_st[x],file_en[x],crt_key,edit_file) #for the critical component value
+                    if reg_l > 0: #a regular component line has been found
+                        #fcc.line_print(edit_file,file_st[x],file_en[x],1) #debug
+                        #log the line number
+                        line_n_reg.append(x)
+                        #log the start index of the line
+                        num_s = file_st[x]
+                        line_n_reg_st.append(num_s)
+                        #log the ending index of the line
+                        num_e = file_en[x]
+                        line_n_reg_en.append(num_e)
+                        #get the attribute and requirement values from the line
+                        return_a = regular_component_info_search(file_st[x],file_en[x],edit_file,1)
+                        return_b = regular_component_info_search(file_st[x],file_en[x],edit_file,2)
+                        return_c = regular_component_info_search(file_st[x],file_en[x],edit_file,3)
+                        return_d = regular_component_info_search(file_st[x],file_en[x],edit_file,4)
+                        reg_attributes.append(return_a)
+                        reg_values.append(return_b)
+                        reg_attributes_st.append(return_c)
+                        reg_values_st.append(return_d)
+                    if crt_l > 0: #the critical component has been found
+                        return_e = regular_component_info_search(file_st[x],file_en[x],edit_file,5) #the critical component start index
+                        return_f = regular_component_info_search(file_st[x],file_en[x],edit_file,6) #the critical component value
+                        #get the critical component value from the line
+                        crt_value_st.append(return_e)
+                        crt_value.append(return_f)
+                #enter editing mode
+                edit_loop = [1,0] #element 0 == edit loop ; element 1 == input checking
+                #while the edit loop is running, edit_loop[0] = 1, otherwise 0
+                #while the input is being checked, edit_loop[1] = 1, otherwise 0
+                edit_exit = "exit"
+                while (edit_loop[0] == 1): #edit mode activated
+                     #display current values. REMEMBER: repeat these steps after every change
+                    #print ("##########################") #debug
+                    #print (reg_attributes) #debug
+                    #print (reg_attributes_st) #debug
+                    #print (reg_values) #debug
+                    #print (reg_values_st) #debug
+                    #print ("##########################") #debug
+                
+                    line_number = "line number" #line number, based on order in the attributes/values list
+                    line_number_str = [] #line numbers converted to string for display purposes
+                    #when displaying line number: add additional spaces to the numbers themselves to line everything up
+                    attribute = "component type" #the attribute value
+                    #adjust this title length based on: the longest attribute value
+                    diff_blanks = "" #the additional blank spaces to add to the attributes title
+                    quantity = "quantity required" #the quantity of components required -- from list reg_values
+                
+                    #finding the difference between the amount of characters in: the attribute title and the longest attribute name
+                    #finding the longest attribute name
+                    longest = [0] #the length of the longest attribute value
+                    a_title = len(attribute) #the character length of the attribute title
+                    for x in range (0,len(reg_attributes)):
+                        length = len(reg_attributes[x])
+                        if x == 0:
+                            longest[0] = length
+                        if x > 0:
+                            if length > longest[0]:
+                                longest[0] = length
+                
+                    a_diff = longest[0] - a_title #the difference in character count between the longest attribute value and the attribute title
+                
+                    #if there is a longer attribute name
+                    #adjust the title length
+                    if a_diff > 0:
+                        #print ("DEBUG - there is a longer attribute name") #debug
+                        for x in range (0,a_diff):
+                            diff_blanks = diff_blanks + " "
+                    #add spaces to attribute values to make everything line up
+                    for x in range(0,len(reg_attributes)):
+                        longest_value = [longest[0]]
+                        #if there are no attribute values longer than the title
+                        if a_diff <= 0:
+                            longest_value[0] = a_title
+                        current_a = len(reg_attributes[x])
+                        diff_aa = longest_value[0] - current_a #difference in character count between the longest attribute value/title and the current attribute value
+                        if diff_aa > 0: #add spaces
+                            for y in range (0,diff_aa):
+                                reg_attributes[x] = reg_attributes[x] + " "
+                    #adjusting the line number values to be as long as the line number title
+                    #convert line numbers into strings and copy them to another list
+                    for x in range (0,len(reg_values)):
+                        copy_v = str(x)
+                        line_number_str.append(copy_v)
+                    #print ("############") #Debug
+                    #print (line_number_str) #debug
+                    #print ("############") #Debug
+                    #add blank spaces to the line number strings
+                    for x in range (0,len(line_number_str)):
+                        base_line = len(line_number)
+                        current = len(line_number_str[x])
+                        if base_line > current:
+                            diff_line = base_line - current #the difference in character count between the line number title and line number values
+                            if diff_line > 0:
+                                for y in range(0,diff_line): #add blank spaces
+                                    line_number_str[x] = line_number_str[x] + " "
+                    #print ("#########") #debug
+                    #print (line_number) # debug
+                    #for x in range (0,len(line_number_str)): #debug
+                        #print (line_number_str[x],"|",sep="") #debug
+                    #print ("#########") #debug
+                
+                    #intial display of component requirements
+                    print ("-----------------------------------------------------------")
+                    print ("component requirements")
+                    print(line_number,"|",attribute,diff_blanks,"|",quantity,sep="")
+                    for x in range (0,len(line_number_str)): #there is a space between displayed element
+                        print (line_number_str[x]," ",reg_attributes[x]," ",reg_values[x],sep="")
+                    #display the critical component - NOTE: this is temporary - will be replaced when the ability to edit the critical component is added
+                    #start of temporary section
+                    #
+                    if len (crt_value) > 0:
+                        print ("critical component: ",crt_value[0],sep="")
+                    #end of temporary section
+                    
+                    #edit mode
+                    print ("---------")
+                    print ("for the following input formats, '#' represents the new value or the line you want to change")
+                    print ("to edit a required component line and change the component type, enter in the following format: #line_number-component-#value")
+                    print ("to edit a required component line and change the required quantity, enter in the following format: #line_number-quantity-#value")
+                    print ("---------")
+                    print ("to return to the previous menu, enter '",edit_exit,"'",sep="")
+                    test_num = [0] #the number of input validation tests that have been done
+                    e_input = input(":") #user input
+                    #check if the exit option has been selected
+                    if e_input == edit_exit:
+                        edit_loop[0] = 0
+                    #if the input is not the exit option
+                    #validate the format of the input
+                    
+                    #instant fail case: check if the input is blank
+                    if test_num[0] == 0:
+                        #print ("DEBUG - test 0: checking if the input is blank") #debug
+                        if e_input: #if the input is not blank
+                            #print ("DEBUG - test 0 passed") #debug
+                            test_num[0] = test_num[0] + 1
+                        if not e_input: #if the input is blank, return to input selection
+                            print ("invalid input")
+                            print ("input is blank")
+                    #instant fail case: check if there are not 2 "-"
+                    if test_num[0] == 1: #testing there are 2 "-"
+                        #print ('DEBUG - test 1: testing for 2 "-"') #debug
+                        count = [0] #number of "-"
+                        for x in range (0,len(e_input)):
+                            find_char_o = "-"
+                            if e_input[x] == find_char_o:
+                                count[0] =  count[0] + 1
+                        correct_num = 2
+                        if count[0] == correct_num: #if this test passes, move on to the next test
+                            test_num[0] = test_num[0] + 1
+                            #print ("DEBUG - test 1 passed") #debug
+                        if count[0] != correct_num: #if this test fails, go back to input selection
+                            print ("invalid input")
+                    #instant fail case: check if the first character of the input is not a number
+                    if test_num[0] == 2:
+                        #print ("DEBUG - test 2: checking of the first character is a number") #debug
+                        first_char = (e_input[0])
+                        if first_char.isnumeric(): #if the first character of the input is a number, move on to the next test
+                            #print ("DEBUG - test 2 passed") #debug
+                            test_num[0] =  test_num[0] + 1
+                        if first_char.isnumeric() == False: #if the first character of the input is not a number, return to input selection
+                            print ("invalid input")
+                    #test 3: check if everything before the first "-" is a number
+                    if test_num[0] == 3:
+                        #print ('DEBUG - test 3: check if everything before the first "-" is a number') #debug
+                        f_index = -5 #the index of the first "-"
+                        find_1 = "-"
+                        start_point = 0
+                        f_index = find_char(e_input,start_point,find_1)
+                        non_numeric = [0] #the number of non-numeric characters
+                        if f_index > 0:
+                            #get the number of non-numeric characters before the first "-"
+                            for x in range(0,f_index):
+                                test_char = e_input[x]
+                                if test_char.isnumeric() == False: #if the character is not a number
+                                    non_numeric[0] = non_numeric[0] + 1
+                        if non_numeric[0] == 0: #if all the characters before the first "-" are numbers, move on to the next test
+                            #print ("DEBUG - test 3 passed") #debug
+                            test_num[0] = test_num[0] + 1
+                        if non_numeric[0] > 0: #if there is at least 1 non-numeric character before the first "-"
+                            print ("invalid input")
+                    #test 4: check if the number before the first "-" is a valid line number
+                    if test_num[0] == 4:
+                        #print ('DEBUG - test 4: check if the number before the first "-" is a valid line number')
+                        test_line_num = [] #stores the list of valid line numbers
+                        for x in range (0,len(reg_values)): #get the line numbers into a list
+                            in_v = str(x)
+                            test_line_num.append(in_v)
+                        #get the line inputed line number
+                        first_d = "-"
+                        index_d_1 = -5
+                        index_d_1 = find_char(e_input,0,first_d) #the index of the first "-"
+                        num_input = "" #the inputed line number
+                        if index_d_1 > 0:
+                            fmc = common()
+                            num_input = fmc.get_value_char_end(e_input,0,len(e_input) - 1,first_d)
+                        # check if the inputed line number is a match for valid line number
+                        valid_status = [0] # 0 == invalid number, 1 == valid number
+                        for y in range (0,len(test_line_num)):
+                            if num_input == test_line_num[y]: #if the inputed line number is a match for a valid line number
+                                #print ("DEBUG - the inputed line number is valid") #debug
+                                #print ("DEBUG - inputed line number |",num_input,"| - matched value |",test_line_num[y],"|",sep="") #debug
+                                valid_status[0] = 1
+                        if valid_status[0] == 0:
+                            print ("invalid input")
+                        if valid_status[0] == 1:
+                            #print ("DEBUG - test 4 passed") #debug
+                            test_num[0] = test_num[0] + 1
+                    #test 5: the last character is not a "-"
+                    if test_num[0] == 5:
+                        #print ('DEBUG - test 5: checking if the last character is not a "-"')
+                        len_input = len(e_input) - 1
+                        last_dd = "-"
+                        if e_input[len_input] == last_dd: #if the last character is a "-"
+                            print ("invalid input")
+                        if e_input[len_input] != last_dd: #if the last character is not a "-"
+                            #print ("DEBUG - test 5 passed")
+                            test_num[0] = test_num[0] + 1
+                    #test 6: check if the next "-" is not right next to the first "-"
+                    if test_num[0] == 6: 
+                        #print ('DEBUG - test 6: checking if the next "-" is not right next to the first "-"')
+                        next_d = "-"
+                        next_index_d = -5 #the index of the second "-"
+                        next_index_d = find_char(e_input,0,next_d)
+                        next_v_status = [0] #0 == the next character is a "-", 1 == the next character is not a "-"
+                        if next_index_d > 0:
+                            #check if the next character is a "-"
+                            if e_input[next_index_d + 1] != next_d: #if the next character is not a "-"
+                                next_v_status[0] = 1
+                        if next_v_status[0] == 1:
+                            #print ("DEBUG - test 6 passed") #debug
+                            test_num[0] = test_num[0] + 1
+                        if next_v_status[0] == 0:
+                            print ("invalid input")
+                    #test 7: the modification type between the first "-" and the second "-" is valid
+                    if test_num[0] == 7:
+                        #print ('DEBUG - test 7: the modification type between the first "-" and the second "-" is valid') #debug
+                        mod_t_1 = "component" #valid modification type 1
+                        mod_t_2 = "quantity" #valid modification type 2
+                        find_ddd = "-"
+                        first_p = [-5] #the index of the first "-"
+                        last_p = [-5] #the index of the second "-"
+                        #find the index of the first "-"
+                        first_p[0] = find_char(e_input,0,find_ddd)
+                        if first_p[0] > 0:
+                            #find the index of last "-"
+                            last_p[0] = find_char(e_input,first_p[0] + 1,find_ddd)
+                        if (first_p[0] > 0) and (last_p[0] > 0):
+                        # get the text in between the first "-" and the last "-"
+                            fvc = common()
+                            fl_between = "" #the text between the two "-"
+                            fl_between = fvc.get_value_char_end(e_input,first_p[0] + 1,len(e_input) - 1,find_ddd)
+                            final_status = [0] #no valid modification type = 0, valid modification type = 1
+                            #check if the text is a match for a valid modification type
+                            #print ("DEBUG: input |",fl_between,"|",sep="") #debug
+                            if fl_between == mod_t_1: #checking if the component type value is being modified
+                                #print ("DEBUG - correct argument |",mod_t_1,"|",sep="") #debug
+                                #print ("DEBUG - test 7 passed: modifying component type value") #debug
+                                test_num[0] = test_num[0] + 1
+                                final_status[0] = 1
+                            if fl_between == mod_t_2: #checking if the required quantity is being modified
+                                #print ("DEBUG - correct argument |",mod_t_2,"|",sep="")
+                                #print ("DEBUG - test 7 passed: modifying required quantity value") #debug
+                                test_num[0] = test_num[0] + 1
+                                final_status[0] = 1
+                            if final_status[0] == 0: #no valid match has been found
+                                print ("invalid input")
+                    #if all tests pass, replace the old value with the new value
+                        if test_num[0] == 8: #all tests have passed
+                            #print ("DEBUG - all tests passed - modifying the selected value") #debug
+                            #get the value after the last "-" -> this is the replacement value
+                            end_i = len(e_input) #the character length of the input
+                            look_for = "-"
+                            first_pos = [-5] #the index position of the first "-"
+                            last_pos = [-5] #the index position of the last "-"
+                            last_count = [0] #a running count of the the number of "-" found
+                            replace_v_in = "" #the new input value
+                            input_mode = "" #input mode, what is being edited
+                            for x in range (0,end_i): #find the index of the last "-"
+                                if e_input[x] == look_for: #if a "-' is found
+                                    #print ('DEBUG - found a "-"') #debug
+                                    last_count[0] = last_count[0] + 1
+                                if (first_pos[0] < 0) and (last_count[0] == 1): #if the first "-" has been found
+                                    #print ("DEBUG - the first '-' has been found") #debug
+                                    first_pos[0] = x    
+                                if (last_count[0] == 2) and (last_pos[0] < 0): #if the last "-" has been found
+                                    #print ("DEBUG - the last '-' has been found") #debug
+                                    last_pos[0] = x
+                                    #print ("DEBUG - index postion of last '-' |",last_pos[0],"|",sep="") #debug
+                                    #print ("DEBUG - last index of the input |",end_i - 1,"|",sep="") #debug
+                            if last_pos[0] > 0: #if the last "-" has been found
+                                #print ("DEBUG - editing: getting the new value") #debug
+                                for x in range (last_pos[0] + 1,end_i): #get all the text from the after the last "-' to the end of the input
+                                    replace_v_in = replace_v_in + e_input[x]
+                            #replacing the old value with the new value
+                            #print ("DEBUG - new value |",replace_v_in,"|",sep="") # debug
+                            mode_1 = "component" #trigger for editing component type
+                            mode_2 = "quantity" #trigger for editing required quantity
+                            start_edit_point = [-5] #break point 1
+                            end_break_point = [-5] #break point 2
+                            #get the edit mode: get the text between the first "-" and the last "-"
+                            #use last_pos[0] and first_pos[0] as the two points
+                            for x in range (first_pos[0] + 1,last_pos[0]):
+                                input_mode = input_mode + e_input[x]
+                            #get the line number
+                            line_in = "" #inputed line number
+                            ln_index = [0] #running index count
+                            ln_loop = [1] #1 == loop running, 0 == exit the loop
+                            while ln_loop[0] == 1: #get the text before the first "-"
+                                current_index = ln_index[0]
+                                find_this = "-"
+                                if (e_input[current_index] == find_this) or (current_index >= len(e_input) - 1): #if the first "-" is found
+                                    ln_loop[0] = 0
+                                if (ln_loop[0] == 1) and (current_index < len(e_input) - 1):
+                                    line_in = line_in + e_input[current_index]
+                                    ln_index[0] = ln_index[0] + 1
+                            print ("selected line number to edit |",line_in,"|",sep="")
+                            #cast the line number to an int
+                            line_num_int = int(line_in)
+                            #check which input mode has been selected
+                            #print ("DEBUG - input mode from user input |",input_mode,"|",sep="") #debug
+                            if input_mode == mode_1: #if editing a component type
+                                print ("changing component type")
+                                #set the first breakpoint
+                                #if editing component type, use reg_attributes_st for the start point
+                                start_edit_point[0] = reg_attributes_st[line_num_int]
+                                #print ("DEBUG - breakpoint 1 index |",start_edit_point,"|",sep="") #debug
+                                #print ("DEBUG - character at the breakpoint |",edit_file[start_edit_point[0]],"|",sep="") #debug
+                            if input_mode == mode_2: #if editing a required quantity
+                                print ("changing required quantity")
+                                #set the first breakpoint
+                                #if editing required qantity, use reg_values_st
+                                start_edit_point[0] = reg_values_st[line_num_int]
+                                #print ("DEBUG - breakpoint 1 index |",start_edit_point,"|",sep="") #debug
+                                #print ("DEBUG - character at the breakpoint |",edit_file[start_edit_point[0]],"|",sep="") #debug
+                            #find the index of the next '"'
+                            next_bp = -5 #the index of the next '"'
+                            look_for_this = '"'
+                            next_bp = find_char(edit_file,start_edit_point[0] + 1,look_for_this)
+                            if next_bp > 0:
+                                end_break_point[0] = next_bp
+                                #print ('DEBUG - index of the next "'," |",end_break_point[0],"|",sep="") #debug
+                            #replace old value with the new one
+                            if (start_edit_point[0] > 0) and (end_break_point[0] > 0):
+                                print ("inserting new value")
+                                #print ("DEBUG - replacement value |",replace_v_in,"|",sep="") #Debug
+                                rpc = common()
+                                edit_file = rpc.insert_text(edit_file,start_edit_point[0] + 1,end_break_point[0],replace_v_in)
+                            #write the changes to text file
+                            fcc.write_file(name_in,edit_file)
+                            #clear the following lists: line start indexes, line end indexes
+                            file_st.clear()
+                            file_en.clear()
+                            #re-index file
+                            fcc.index_lines(edit_file,file_st,file_en)
+                            #clear the editable info lists
+                            reg_attributes.clear()
+                            reg_values.clear()
+                            reg_attributes_st.clear()
+                            reg_values_st.clear()
+                            crt_value_st.clear()
+                            crt_value.clear()
+                            #re-index the editable info
+                            for x in range (section_start[0],section_end[0] + 1):
+                                reg_l = -5
+                                crt_l = -5 #trigger for the critical component value
+                                reg_key = "<Component Subtype="
+                                crt_key = "<CriticalComponent Subtype="
+                                reg_l = fcc.grep(file_st[x],file_en[x],reg_key,edit_file)
+                                crt_l = fcc.grep(file_st[x],file_en[x],crt_key,edit_file) #for the critical component value
+                                if reg_l > 0: #a regular component line has been found
+                                    #fcc.line_print(edit_file,file_st[x],file_en[x],1) #debug
+                                    #log the line number
+                                    line_n_reg.append(x)
+                                    #log the start index of the line
+                                    num_s = file_st[x]
+                                    line_n_reg_st.append(num_s)
+                                    #log the ending index of the line
+                                    num_e = file_en[x]
+                                    line_n_reg_en.append(num_e)
+                                    #get the attribute and requirement values from the line
+                                    return_a = regular_component_info_search(file_st[x],file_en[x],edit_file,1)
+                                    return_b = regular_component_info_search(file_st[x],file_en[x],edit_file,2)
+                                    return_c = regular_component_info_search(file_st[x],file_en[x],edit_file,3)
+                                    return_d = regular_component_info_search(file_st[x],file_en[x],edit_file,4)
+                                    reg_attributes.append(return_a)
+                                    reg_values.append(return_b)
+                                    reg_attributes_st.append(return_c)
+                                    reg_values_st.append(return_d)
+                                if crt_l > 0: #the critical component has been found
+                                    return_e = regular_component_info_search(file_st[x],file_en[x],edit_file,5) #the critical component start index
+                                    return_f = regular_component_info_search(file_st[x],file_en[x],edit_file,6) #the critical component value
+                                    #get the critical component value from the line
+                                    crt_value_st.append(return_e)
+                                    crt_value.append(return_f)
         while (mode_list[2] == 1) and mode_list[3] > 0:
             print ("all entries within this file will be removed of all non standard components")
             st_index = [] #contains the start index of each line in the file
