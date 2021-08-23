@@ -11,16 +11,42 @@ available_list.txt
 
 ##current status##
 
-Currently, there is only one functioning feature. This functionality removes any non-basic component requirements for blocks. Essentially, this entails removing any requirement for components that cannot be created from a survival kit, replacing them with components that can be created from a survival kit. The only exception is that any component requirements for power cells will not be changed.
+Currently, there are two functioning features. They are as follows:
 
-The ability to make changes to individual attributes for blocks and other items is a work in progress. Currently, this functionality is not implemented.
+#auto replacement of non-basic component requirements
+This functionality removes any non-basic component requirements for blocks. Essentially, this entails removing any requirement for components that cannot be created from a survival kit, replacing them with components that can be created from a survival kit. The only exception is that any component requirements for power cells will not be changed.
+
+#manual editing of required components
+Currently, the following can be manually edited:
+-the component types of required components
+-the required quantity of required components
+
+At the moment, these two values can be changed, but a component requirement cannot be removed.
+
+The following cannot be edited as of this update, however implementation of these capababilities is planned:
+-the required critical component
+-secondary values specific to certain blocks: for example, power consumption, assembly speed, refining speed, etc
 
 ##Using this script##
 
 Currently, this script only works on files in the "CubeBlocks" folder. The text file "available_list" must contain the file names of any SBC files you want to edit. Do not include the file extension. Each file name must be on a separate line. Avoid placing any blank lines in this file. If a file is listed, the corresponding SBC file must be in the directory containing the script files. 
 
-Example:
+#Using the auto-replacement feature
+select the file you want to edit, then select the auto-replacement option.
 
+#using the manual edit option
+At the manual editing menu, type in the name of the block you want to edit. This must be the name of the block as it is called in the SBC file, not the block's in game name. Once you make a valid selection, enter in inputs by the following methods:
+
+To edit the component type, use the following format for the input: line_number-component-value. Available line numbers will be displayed alongside the related component requirements. Examples are below:
+0-component-SteelPlate
+2-component-Computer
+
+To edit the required quantity, use the following format for the input: line_number-quantity-value. Examples are below:
+2-quantity-33
+4-quantity-23
+
+#making SBC files available for editing
+Example contents of available_list.txt:
 CubeBlocks_ArmorPanels
 CubeBlocks_Automation
 CubeBlocks_Communications
