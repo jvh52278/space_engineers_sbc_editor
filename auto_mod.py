@@ -90,6 +90,58 @@ class common:
         return whole
 # class functions end here
 
+def secondary_property_info_search(a,b,c,d): #a == start index of the line ; b == end index of the line ; c == source text ; d == mode
+    #mode settings: 1 == return start index of the secondary property, 2 == return description of the secondary property, 3 == return the value of the secondary property
+    in_file_name = ["<StandbyPowerConsumption>","<OperationalPowerConsumption>","<RefineSpeed>","<MaterialEfficiency>","<BuildTimeSeconds>","<AssemblySpeed>"] #the names of the secondary properties as defined in the SBC file -> indexes must match up with the description list
+    desc_list = ["idle power use","operating power use","refining speed","material efficiency","build time in seconds","assembly speed"] #the corressponding descriptions of the secondary properties -> indexes must match up with those in in_file_name
+    end_sec_char = "<"
+    fhc = common()
+    line_ff = fhc.line_print(c,a,b,2) #debug
+    #print ("DEBUG - fuction - checking line |",line_ff,"|",sep="") #debug
+    find_next = [0] #trigger for finding the property value and property desciption
+    # find the start index of the secondary property, if a secondary property exists at all
+    sp_st_index = [-5] # the start index of the secondary property
+    find_index = [-5] #the index of the found secondary property
+    for x in range (0,len(in_file_name)): #run through each secondary property to see if it exists
+        test_prop = in_file_name[x]
+        test_i = fhc.grep(a,b,test_prop,c)
+        #if a secondary property is found
+        if test_i > 0:
+            sp_st_index[0] = test_i
+            find_index[0] = x
+            find_next[0] = find_next[0] + 1
+    # if a secondary property exists, find the description
+    blank_s = "nothing"    
+    f_desc = blank_s #the secondary property description
+    fsv = blank_s #the value of the secondary 
+    #print ("DEBUG - sp_st_index |",sp_st_index[0],"|",sep="") #debug
+    #print ("DEBUG - find_index |",find_index[0],"|",sep="") #debug
+    #print ("DEBUG - find_next |",find_next[0],"|",sep="") #debug
+    if (sp_st_index[0] > 0) and (find_next[0] > 0):
+        #print ("DEBUG - function - secondary property is been found") #debug
+        #print ("DEBUG - property found is |",desc_list[find_index[0]],"|",sep="") #debug
+        #print ("line |",fhc.line_print(c,a,b,1),"|",sep="") #debug
+        # get the description of the secondary property
+        f_desc = desc_list[find_index[0]]
+        #get the value of secondary property
+        fsv = fhc.get_value_char_end(c,sp_st_index[0] + 1,b,end_sec_char)
+    #return modes
+    if d == 1: #returning the start index of the secondary property
+        return_aa = sp_st_index[0]
+        if return_aa > 0: #this means that a secondary property has been found
+            return return_aa
+        if return_aa <= 0: #this means that a secondary property has not been found
+            fail_s = -5
+            return fail_s
+    if d == 2: #returning the description of the secondary property
+        return f_desc
+    if d == 3: #return the value of secondary property
+        return fsv
+    if d == 4: #return the list of possible secondary properties
+        return desc_list
+    
+    
+    
 def regular_component_info_search (a,b,c,d): #a == start index of the line ; b == end index of the line ; c == source text ; d == mode -- 1 = return attribute value, 2 = return required quantity value, 3 = return the attribute start index, 4 = return the quantity value start index, 5 = return the critical component value start index, 6 = return the the critical component value
     #gets info for manual editing of regular component lines
     fnc = common()
@@ -355,6 +407,10 @@ while (mode_list[0] > 0):
             crt_value_st = [] #the start index of the critical component value
             crt_value = [] #the critical component value
             
+            scp_desc = [] #the description of secondary properties
+            scp_values = [] #secondary property values
+            scp_values_st = [] #the start indexes of secondary properties
+            
             section_start = [-5] #the line number of the section start
             section_end = [-5] #the line number of the section end
             
@@ -373,6 +429,12 @@ while (mode_list[0] > 0):
             if find_sec == exit_code:
                 mode_list[3] = 0
                 
+            blank_code = [1] #trigger for blank input -> 0 == not blank, 1 == blank
+            #check if the input is blank
+            if find_sec: #if the input is not blank
+                blank_code[0] = 0
+                
+                
             start_key_base = "<SubtypeId>"
             start_key_end = "<"
             start_key_full = start_key_base + find_sec + start_key_end #a section starts at this line
@@ -384,7 +446,7 @@ while (mode_list[0] > 0):
             r_mode = [1] #1 == looking for start line ; 2 == looking for end line
             lm = [0] #line number iterator
             
-            while (r_mode[0] < 3) and (lm[0] < len(file_st)):
+            while (r_mode[0] < 3) and (lm[0] < len(file_st)) and (blank_code[0] == 0):
                 if r_mode[0] == 1: #looking for start section
                     #print ("searching for section start") #debug
                     st_check = -5 #if this is -5, the section name does not exist in the file
@@ -413,8 +475,11 @@ while (mode_list[0] > 0):
                 #list the relevent information
                 #regular component line info gathering
                 for x in range (section_start[0],section_end[0] + 1):
+                    #print ("DEBUG - ########## loop ",x," ###########",sep="") #debug
                     reg_l = -5
                     crt_l = -5 #trigger for the critical component value
+                    scp_l = -5 #trigger for a secondary property
+                    scp_l = secondary_property_info_search(file_st[x],file_en[x],edit_file,1) #check if the line is a secondary property
                     reg_key = "<Component Subtype="
                     crt_key = "<CriticalComponent Subtype="
                     reg_l = fcc.grep(file_st[x],file_en[x],reg_key,edit_file)
@@ -444,6 +509,66 @@ while (mode_list[0] > 0):
                         #get the critical component value from the line
                         crt_value_st.append(return_e)
                         crt_value.append(return_f)
+                    if scp_l > 0: #if a secondary property has been found
+                        #print ("DEBUG -###############################################") #debug
+                       # print ("DEBUG - previously detected secondary properties") #debug
+                        #print (scp_desc) #debug
+                        #print ("DEBUG - a secondary property has been found") #debug
+                        #print ("DEBUG - scp_l is |",scp_l,"|",sep="") #debug
+                        #print ("DEBUG - getting info from line:") #debug
+                        #fcc.line_print(edit_file,file_st[x],file_en[x],1) #debug
+                        #print ("DEBUG -###############################################") #debug
+                        return_g = scp_l #the start index of the secondary property
+                        return_h = secondary_property_info_search(file_st[x],file_en[x],edit_file,2)#the description of the secondary property
+                        return_i = secondary_property_info_search(file_st[x],file_en[x],edit_file,3) #the value of the secondary property
+                        scp_values_st.append(return_g)
+                        scp_desc.append(return_h)
+                        scp_values.append(return_i)
+                        #check the secondary properties for erronouly detected blank entries
+                        wrong = "nothing"
+                        test_values = [] #a copy of secondary property values
+                        ignore_list = [] #indexes to ignore, these are erronously detected blanks
+                        #copy the values into test_values
+                        for y in range (0,len(scp_values)):
+                            copy_vvv = scp_values[y]
+                            test_values.append(copy_vvv)
+                        #test if the values are blanks
+                        for z in range (0,len(test_values)):
+                            fail_en = [0] #the number of blanks found
+                            test_element = test_values[z]
+                            if test_element == wrong: #if it is a blank
+                                fail_en[0] = fail_en[0] + 1
+                            if fail_en[0] > 0:
+                                ignore_list.append(z)
+                        #copy the list contents to a temporary destination
+                        a = [] #temporary list for start indexes
+                        b = [] #temporary list for descriptions
+                        c = [] #temporary list for values
+                        for x in range (0,len(scp_values_st)):
+                            #check if the index is not on the ignore list
+                            test_value_st = scp_values_st[x] #the start index
+                            test_value_aaa = scp_values[x] #the secondary property value
+                            test_desc = scp_desc[x] #the description
+                            no_fly = [0]
+                            for y in range (0,len(ignore_list)):
+                                if x == ignore_list[y]:
+                                    no_fly[0] = no_fly[0] + 1
+                            if no_fly[0] == 0: #if the index is not on the ignore list
+                                a.append(test_value_st)
+                                b.append(test_desc)
+                                c.append(test_value_aaa)
+                        #clear the orignal lists
+                        scp_values_st.clear()
+                        scp_values.clear()
+                        scp_desc.clear()
+                        #copy the values from the temporary lists to the orignal lists
+                        for x in range (0,len(a)):
+                            a_copy = a[x]
+                            b_copy = b[x]
+                            c_copy = c[x]
+                            scp_values_st.append(a_copy)
+                            scp_desc.append(b_copy)
+                            scp_values.append(c_copy)
                 #enter editing mode
                 edit_loop = [1,0] #element 0 == edit loop ; element 1 == input checking
                 #while the edit loop is running, edit_loop[0] = 1, otherwise 0
@@ -533,6 +658,10 @@ while (mode_list[0] > 0):
                     if len (crt_value) > 0:
                         print ("critical component: ",crt_value[0],sep="")
                     #
+                    #display the secondary properties
+                    if len(scp_values_st) > 0: #if there are any secondary properties
+                        for x in range (0,len(scp_values_st)):
+                            print (scp_desc[x],": ",scp_values[x],sep="")
                     
                     #edit mode
                     print ("---------")
@@ -540,6 +669,7 @@ while (mode_list[0] > 0):
                     print ("to edit a required component line and change the component type, enter in the following format: #line_number-component-#value")
                     print ("to edit a required component line and change the required quantity, enter in the following format: #line_number-quantity-#value")
                     print ("to edit the critical component and change the critical component, enter in the following format: ",critical_edit,"-#value",sep="")
+                    print ("to edit a secondary property, enter in the following format: #property-#value")
                     print ("---------")
                     print ("to return to the previous menu, enter '",edit_exit,"'",sep="")
                     test_num = [0] #the number of input validation tests that have been done, for dual entry lines
@@ -548,7 +678,65 @@ while (mode_list[0] > 0):
                     #check if the exit option has been selected
                     if e_input == edit_exit:
                         edit_loop[0] = 0
-                        
+                    
+                    #check if the input is a secondary property
+                    secondary_property = "" #the secondary property - use this for testing the input as well as storing a valid input
+                    
+                    sec_check = [1] #a running count of secondary property input checks
+                    #test 1: check if there is exactly 1 '-" and the first and last indexes are not "-"
+                    if (sec_check[0] == 1) and (e_input):
+                        #print ("DEBUG - checking if the input is a secondary property") #debug
+                        d_check = [0] #a running count of the number of "-" in the user input
+                        error_check = [0] #0 == the first or last index is not a "-", 1 == the first or last index is a "-"
+                        for x in range (0,len(e_input)):
+                            check_this = "-"
+                            #check if a character is a "-"
+                            if e_input[x] == check_this:
+                                #update the running count of "-"
+                                d_check[0] = d_check[0] + 1
+                            #checking if the first index is a "-"
+                            if x == 0:
+                                if e_input[x] == check_this:
+                                    #update the error check counter
+                                    error_check[0] = error_check[0] + 1
+                            #check if the last index is a "-"
+                            if x == len(e_input) - 1:
+                                if e_input[x] == check_this:
+                                #update the error check counter
+                                    error_check[0] = error_check[0] + 1
+                        ####DEBUG####            
+                        #if error_check[0] == 0: #debug
+                            #print ("DEBUG - the first and last indexs are not '-'") #debug
+                        #if d_check[0] == 1: #debug
+                            #print ("DEBUG - there is only 1 '-'") #debug
+                        ####DEBUG#####
+                        #if the first or last index is not a "-" and there is only 1 "-"
+                        if (error_check[0] == 0) and (d_check[0] == 1):
+                        #checking if everything before the "-" matches with the description of a secondary property
+                            #print ("DEBUG -  checking if a secondary property has been selected") #debug
+                            cga = common()
+                            delimiter_a = "-"
+                            secondary_property = cga.get_value_char_end(e_input,0,len(e_input) - 1,delimiter_a)
+                            #print ("DEBUG - the possible secondary property is |",secondary_property,"|",sep="") #debug
+                            #check if the possible secondary property matches up  with all possible secondary properties
+                            total_secondary_properties = []
+                            total_secondary_properties = secondary_property_info_search(0,0,e_input,4)
+                            #print ("DEBUG - possible secondary properties") #debug
+                            #print (total_secondary_properties) #debug
+                            sec_match_found = [0] #0 == no match found, 1 == a match has been found
+                            for x in range (0,len(total_secondary_properties)):
+                                #if a match is found
+                                if secondary_property == total_secondary_properties[x]:
+                                    sec_match_found[0] = sec_match_found[0] + 1
+                                    #print ("DEBUG - a match has been found") #debug
+                                    #print ("from input |",secondary_property,"|",sep="") #debug
+                                    #print ("list match |",total_secondary_properties[x],"|",sep="") #debug
+                            if sec_match_found[0] == 1:
+                                sec_check[0] = sec_check[0] + 1
+                    if sec_check[0] == 2: #if a confirmed match for a secondary property has been found
+                        print ("editing a secondary property")
+
+                            
                     #check if a single entry line is being tested
                     #there is only 1 "-"
                     #the first character is not a "-"
@@ -733,7 +921,7 @@ while (mode_list[0] > 0):
                     
                     
                     #if all tests pass, replace the old value with the new value - for dual entry lines AND single entry lines
-                    if (test_num[0] == 8) or (s_test_num[0] == 1): #all tests have passed
+                    if (test_num[0] == 8) or (s_test_num[0] == 1) or (sec_check[0] == 2): #all tests have passed
                         #print ("DEBUG - all tests passed - modifying the selected value") #debug
                         #get the value after the last "-" -> this is the replacement value
                         end_i = len(e_input) #the character length of the input
@@ -759,7 +947,7 @@ while (mode_list[0] > 0):
                             #print ("DEBUG - editing: getting the new value") #debug
                             for x in range (last_pos[0] + 1,end_i): #get all the text from the after the last "-' to the end of the input
                                 replace_v_in = replace_v_in + e_input[x]
-                        if s_test_num[0] == 1: #if a single entry line is being tested
+                        if (s_test_num[0] == 1) or (sec_check[0] == 2): #if a single entry line is being tested
                             #print ("DEBUG - editing a single entry line, getting replacement value") #debug
                             bpp = find_char(e_input,0,look_for)
                             if bpp > 0:
@@ -771,6 +959,7 @@ while (mode_list[0] > 0):
                         mode_1 = "component" #trigger for editing component type
                         mode_2 = "quantity" #trigger for editing required quantity
                         mode_3 = critical_edit
+                        mode_4 = "secondary_edit"
                         start_edit_point = [-5] #break point 1
                         end_break_point = [-5] #break point 2
                         #get the edit mode:
@@ -785,6 +974,9 @@ while (mode_list[0] > 0):
                                 for x in range (0,bcp):
                                     input_mode = input_mode + e_input[x]
                                 #print ("DEBUG - input mode found |",input_mode,"|",sep="") #debug
+                        if sec_check[0] == 2: #if editing a secondary property
+                            input_mode = mode_4
+                            #print ("DEBUG - setting input mode to secondary property") #debug
                         #get the line number
                         line_in = "" #inputed line number
                         ln_index = [0] #running index count
@@ -799,12 +991,20 @@ while (mode_list[0] > 0):
                                 ln_index[0] = ln_index[0] + 1
                         if s_test_num[0] != 1: #if editing a dual entry line
                             print ("selected line number to edit |",line_in,"|",sep="")
+                        sec_line = [-5] #the index number of scp_desc that matches the secondary property
+                        if sec_check[0] == 2: #if editing a secondary property
+                            #find the line number containing the description of the secondary property
+                            for x in range (0,len(scp_desc)):
+                                if secondary_property == scp_desc[x]:
+                                #if a match is found
+                                    sec_line[0] = x
+                                    #print ("DEBUG - found index match in scp_desc") #debug
                         #cast the line number to an int
                         line_num_int = 0
                         line_num_f = [-5]
-                        if s_test_num[0] != 1: #if editing a dual entry line
+                        if (s_test_num[0] != 1) and (sec_check[0] != 2): #if editing a dual entry line
                             line_num_f[0] = int(line_in)
-                        if s_test_num[0] == 1: #if editing a single entry line
+                        if (s_test_num[0] == 1) or (sec_check[0] == 2): #if editing a single entry line or a secondary property
                             line_num_f[0] = -5
                         line_num_int = line_num_f[0]
                         #check which input mode has been selected
@@ -830,9 +1030,14 @@ while (mode_list[0] > 0):
                             #for other single entry lines -> loop through a list to find the specific edit mode/input mode
                             ##the use that to get the specific start point
                         #
+                        if input_mode == mode_4: #if editing a secondary property
+                            #print ("DEBUG - setting breakpoint 1 for secondary start point edit") #debug
+                            start_edit_point[0] = scp_values_st[sec_line[0]]
                         #find the index of the next '"'
                         next_bp = -5 #the index of the next '"'
                         look_for_this = '"'
+                        if sec_check[0] == 2: #if editing a secondary property
+                            look_for_this = "<"
                         next_bp = find_char(edit_file,start_edit_point[0] + 1,look_for_this)
                         if next_bp > 0:
                             end_break_point[0] = next_bp
@@ -857,10 +1062,15 @@ while (mode_list[0] > 0):
                         reg_values_st.clear()
                         crt_value_st.clear()
                         crt_value.clear()
+                        scp_values_st.clear()
+                        scp_desc.clear()
+                        scp_values.clear()
                         #re-index the editable info
                         for x in range (section_start[0],section_end[0] + 1):
                             reg_l = -5
                             crt_l = -5 #trigger for the critical component value
+                            scp_l = -5 #trigger for a secondary property
+                            scp_l = secondary_property_info_search(file_st[x],file_en[x],edit_file,1) #check if the line is a secondary property
                             reg_key = "<Component Subtype="
                             crt_key = "<CriticalComponent Subtype="
                             reg_l = fcc.grep(file_st[x],file_en[x],reg_key,edit_file)
@@ -890,6 +1100,66 @@ while (mode_list[0] > 0):
                                 #get the critical component value from the line
                                 crt_value_st.append(return_e)
                                 crt_value.append(return_f)
+                            if scp_l > 0: #if a secondary property has been found
+                                #print ("DEBUG -###############################################") #debug
+                                # print ("DEBUG - previously detected secondary properties") #debug
+                                #print (scp_desc) #debug
+                                #print ("DEBUG - a secondary property has been found") #debug
+                                #print ("DEBUG - scp_l is |",scp_l,"|",sep="") #debug
+                                #print ("DEBUG - getting info from line:") #debug
+                                #fcc.line_print(edit_file,file_st[x],file_en[x],1) #debug
+                                #print ("DEBUG -###############################################") #debug
+                                return_g = scp_l #the start index of the secondary property
+                                return_h = secondary_property_info_search(file_st[x],file_en[x],edit_file,2)#the description of the secondary property
+                                return_i = secondary_property_info_search(file_st[x],file_en[x],edit_file,3) #the value of the secondary property
+                                scp_values_st.append(return_g)
+                                scp_desc.append(return_h)
+                                scp_values.append(return_i)
+                                #check the secondary properties for erronouly detected blank entries
+                                wrong = "nothing"
+                                test_values = [] #a copy of secondary property values
+                                ignore_list = [] #indexes to ignore, these are erronously detected blanks
+                                #copy the values into test_values
+                                for y in range (0,len(scp_values)):
+                                    copy_vvv = scp_values[y]
+                                    test_values.append(copy_vvv)
+                                #test if the values are blanks
+                                for z in range (0,len(test_values)):
+                                    fail_en = [0] #the number of blanks found
+                                    test_element = test_values[z]
+                                    if test_element == wrong: #if it is a blank
+                                            fail_en[0] = fail_en[0] + 1
+                                    if fail_en[0] > 0:
+                                        ignore_list.append(z)
+                                #copy the list contents to a temporary destination
+                                a = [] #temporary list for start indexes
+                                b = [] #temporary list for descriptions
+                                c = [] #temporary list for values
+                                for x in range (0,len(scp_values_st)):
+                                    #check if the index is not on the ignore list
+                                    test_value_st = scp_values_st[x] #the start index
+                                    test_value_aaa = scp_values[x] #the secondary property value
+                                    test_desc = scp_desc[x] #the description
+                                    no_fly = [0]
+                                    for y in range (0,len(ignore_list)):
+                                        if x == ignore_list[y]:
+                                            no_fly[0] = no_fly[0] + 1
+                                    if no_fly[0] == 0: #if the index is not on the ignore list
+                                        a.append(test_value_st)
+                                        b.append(test_desc)
+                                        c.append(test_value_aaa)
+                                #clear the orignal lists
+                                scp_values_st.clear()
+                                scp_values.clear()
+                                scp_desc.clear()
+                                #copy the values from the temporary lists to the orignal lists
+                                for x in range (0,len(a)):
+                                    a_copy = a[x]
+                                    b_copy = b[x]
+                                    c_copy = c[x]
+                                    scp_values_st.append(a_copy)
+                                    scp_desc.append(b_copy)
+                                    scp_values.append(c_copy)    
         while (mode_list[2] == 1) and mode_list[3] > 0:
             print ("all entries within this file will be removed of all non standard components")
             st_index = [] #contains the start index of each line in the file
