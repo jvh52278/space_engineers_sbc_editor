@@ -21,11 +21,13 @@ Currently, the following can be manually edited:
 -the component types of required components
 -the required quantity of required components
 -the critical component
+-secondary values specific to certain blocks -> ie, assembly speed
 
-At the moment, these two values can be changed, but a component requirement cannot be removed.
+At the moment, a component requirement cannot be removed. Additionally, not all secondary values can be changed.
 
-The following cannot be edited as of this update, however implementation of these capababilities is planned:
--secondary values specific to certain blocks: for example, power consumption, assembly speed, refining speed, etc
+implementation of the following capababilities is planned:
+-increasing the number of secondary values that can be edited
+-the ability create pre-set changes that can be applied to a specific block -> so that many attributes and values can be changed at once
 
 ##Using this script##
 This is a command line utility. There is no graphical interface. Currently, this script only works on files in the "CubeBlocks" folder. The text file "available_list" must contain the file names of any SBC files you want to edit. Do not include the file extension. Each file name must be on a separate line. Avoid placing any blank lines in this file. If a file is listed, the corresponding SBC file must be in the directory containing the script files. 
