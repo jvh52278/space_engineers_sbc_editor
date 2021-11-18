@@ -137,6 +137,8 @@ def secondary_property_info_search(a,b,c,d): #a == start index of the line ; b =
         return f_desc
     if d == 3: #return the value of secondary property
         return fsv
+    if d == 4: #return the list of possible secondary properties
+        return desc_list
     
     
     
@@ -392,7 +394,7 @@ while (mode_list[0] > 0):
 
         while (mode_list[2] == 2) and mode_list[3] > 0:
             print ("manual edit mode selected")
-            print ("DEBUG - this feature is under development. it is not fully functional and you will see debugging messages") #debug
+            #print ("DEBUG - this feature is under development. it is not fully functional and you will see debugging messages") #debug
             
             line_n_reg = [] #line numbers for regular component lines -- REMEMBER: clear this list when changing to a new entry
             line_n_reg_st = [] #start indexes for each regular component line -- REMEMBER: clear this list when changing to a new entry
@@ -667,6 +669,7 @@ while (mode_list[0] > 0):
                     print ("to edit a required component line and change the component type, enter in the following format: #line_number-component-#value")
                     print ("to edit a required component line and change the required quantity, enter in the following format: #line_number-quantity-#value")
                     print ("to edit the critical component and change the critical component, enter in the following format: ",critical_edit,"-#value",sep="")
+                    print ("to edit a secondary property, enter in the following format: #property-#value")
                     print ("---------")
                     print ("to return to the previous menu, enter '",edit_exit,"'",sep="")
                     test_num = [0] #the number of input validation tests that have been done, for dual entry lines
@@ -675,7 +678,65 @@ while (mode_list[0] > 0):
                     #check if the exit option has been selected
                     if e_input == edit_exit:
                         edit_loop[0] = 0
-                        
+                    
+                    #check if the input is a secondary property
+                    secondary_property = "" #the secondary property - use this for testing the input as well as storing a valid input
+                    
+                    sec_check = [1] #a running count of secondary property input checks
+                    #test 1: check if there is exactly 1 '-" and the first and last indexes are not "-"
+                    if (sec_check[0] == 1) and (e_input):
+                        #print ("DEBUG - checking if the input is a secondary property") #debug
+                        d_check = [0] #a running count of the number of "-" in the user input
+                        error_check = [0] #0 == the first or last index is not a "-", 1 == the first or last index is a "-"
+                        for x in range (0,len(e_input)):
+                            check_this = "-"
+                            #check if a character is a "-"
+                            if e_input[x] == check_this:
+                                #update the running count of "-"
+                                d_check[0] = d_check[0] + 1
+                            #checking if the first index is a "-"
+                            if x == 0:
+                                if e_input[x] == check_this:
+                                    #update the error check counter
+                                    error_check[0] = error_check[0] + 1
+                            #check if the last index is a "-"
+                            if x == len(e_input) - 1:
+                                if e_input[x] == check_this:
+                                #update the error check counter
+                                    error_check[0] = error_check[0] + 1
+                        ####DEBUG####            
+                        #if error_check[0] == 0: #debug
+                            #print ("DEBUG - the first and last indexs are not '-'") #debug
+                        #if d_check[0] == 1: #debug
+                            #print ("DEBUG - there is only 1 '-'") #debug
+                        ####DEBUG#####
+                        #if the first or last index is not a "-" and there is only 1 "-"
+                        if (error_check[0] == 0) and (d_check[0] == 1):
+                        #checking if everything before the "-" matches with the description of a secondary property
+                            #print ("DEBUG -  checking if a secondary property has been selected") #debug
+                            cga = common()
+                            delimiter_a = "-"
+                            secondary_property = cga.get_value_char_end(e_input,0,len(e_input) - 1,delimiter_a)
+                            #print ("DEBUG - the possible secondary property is |",secondary_property,"|",sep="") #debug
+                            #check if the possible secondary property matches up  with all possible secondary properties
+                            total_secondary_properties = []
+                            total_secondary_properties = secondary_property_info_search(0,0,e_input,4)
+                            #print ("DEBUG - possible secondary properties") #debug
+                            #print (total_secondary_properties) #debug
+                            sec_match_found = [0] #0 == no match found, 1 == a match has been found
+                            for x in range (0,len(total_secondary_properties)):
+                                #if a match is found
+                                if secondary_property == total_secondary_properties[x]:
+                                    sec_match_found[0] = sec_match_found[0] + 1
+                                    #print ("DEBUG - a match has been found") #debug
+                                    #print ("from input |",secondary_property,"|",sep="") #debug
+                                    #print ("list match |",total_secondary_properties[x],"|",sep="") #debug
+                            if sec_match_found[0] == 1:
+                                sec_check[0] = sec_check[0] + 1
+                    if sec_check[0] == 2: #if a confirmed match for a secondary property has been found
+                        print ("editing a secondary property")
+
+                            
                     #check if a single entry line is being tested
                     #there is only 1 "-"
                     #the first character is not a "-"
@@ -860,7 +921,7 @@ while (mode_list[0] > 0):
                     
                     
                     #if all tests pass, replace the old value with the new value - for dual entry lines AND single entry lines
-                    if (test_num[0] == 8) or (s_test_num[0] == 1): #all tests have passed
+                    if (test_num[0] == 8) or (s_test_num[0] == 1) or (sec_check[0] == 2): #all tests have passed
                         #print ("DEBUG - all tests passed - modifying the selected value") #debug
                         #get the value after the last "-" -> this is the replacement value
                         end_i = len(e_input) #the character length of the input
@@ -886,7 +947,7 @@ while (mode_list[0] > 0):
                             #print ("DEBUG - editing: getting the new value") #debug
                             for x in range (last_pos[0] + 1,end_i): #get all the text from the after the last "-' to the end of the input
                                 replace_v_in = replace_v_in + e_input[x]
-                        if s_test_num[0] == 1: #if a single entry line is being tested
+                        if (s_test_num[0] == 1) or (sec_check[0] == 2): #if a single entry line is being tested
                             #print ("DEBUG - editing a single entry line, getting replacement value") #debug
                             bpp = find_char(e_input,0,look_for)
                             if bpp > 0:
@@ -898,6 +959,7 @@ while (mode_list[0] > 0):
                         mode_1 = "component" #trigger for editing component type
                         mode_2 = "quantity" #trigger for editing required quantity
                         mode_3 = critical_edit
+                        mode_4 = "secondary_edit"
                         start_edit_point = [-5] #break point 1
                         end_break_point = [-5] #break point 2
                         #get the edit mode:
@@ -912,6 +974,9 @@ while (mode_list[0] > 0):
                                 for x in range (0,bcp):
                                     input_mode = input_mode + e_input[x]
                                 #print ("DEBUG - input mode found |",input_mode,"|",sep="") #debug
+                        if sec_check[0] == 2: #if editing a secondary property
+                            input_mode = mode_4
+                            #print ("DEBUG - setting input mode to secondary property") #debug
                         #get the line number
                         line_in = "" #inputed line number
                         ln_index = [0] #running index count
@@ -926,12 +991,20 @@ while (mode_list[0] > 0):
                                 ln_index[0] = ln_index[0] + 1
                         if s_test_num[0] != 1: #if editing a dual entry line
                             print ("selected line number to edit |",line_in,"|",sep="")
+                        sec_line = [-5] #the index number of scp_desc that matches the secondary property
+                        if sec_check[0] == 2: #if editing a secondary property
+                            #find the line number containing the description of the secondary property
+                            for x in range (0,len(scp_desc)):
+                                if secondary_property == scp_desc[x]:
+                                #if a match is found
+                                    sec_line[0] = x
+                                    #print ("DEBUG - found index match in scp_desc") #debug
                         #cast the line number to an int
                         line_num_int = 0
                         line_num_f = [-5]
-                        if s_test_num[0] != 1: #if editing a dual entry line
+                        if (s_test_num[0] != 1) and (sec_check[0] != 2): #if editing a dual entry line
                             line_num_f[0] = int(line_in)
-                        if s_test_num[0] == 1: #if editing a single entry line
+                        if (s_test_num[0] == 1) or (sec_check[0] == 2): #if editing a single entry line or a secondary property
                             line_num_f[0] = -5
                         line_num_int = line_num_f[0]
                         #check which input mode has been selected
@@ -957,9 +1030,14 @@ while (mode_list[0] > 0):
                             #for other single entry lines -> loop through a list to find the specific edit mode/input mode
                             ##the use that to get the specific start point
                         #
+                        if input_mode == mode_4: #if editing a secondary property
+                            #print ("DEBUG - setting breakpoint 1 for secondary start point edit") #debug
+                            start_edit_point[0] = scp_values_st[sec_line[0]]
                         #find the index of the next '"'
                         next_bp = -5 #the index of the next '"'
                         look_for_this = '"'
+                        if sec_check[0] == 2: #if editing a secondary property
+                            look_for_this = "<"
                         next_bp = find_char(edit_file,start_edit_point[0] + 1,look_for_this)
                         if next_bp > 0:
                             end_break_point[0] = next_bp
